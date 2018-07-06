@@ -27,7 +27,7 @@ import (
 // the status to signify whether the plan/apply succeeds.
 type CommitStatusUpdater interface {
 	// Update updates the status of the head commit of pull.
-	Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext) error
+	Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext, workspace string) error
 	// UpdateProjectResult updates the status of the head commit given the
 	// state of response.
 	UpdateProjectResult(ctx *CommandContext, commandName CommandName, res CommandResult) error
@@ -39,32 +39,28 @@ type DefaultCommitStatusUpdater struct {
 }
 
 // Update updates the commit status.
-func (d *DefaultCommitStatusUpdater) Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext) error {
+func (d *DefaultCommitStatusUpdater) Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext, workspace string) error {
 	description := fmt.Sprintf("%s %s", strings.Title(command.String()), strings.Title(status.String()))
 
 	if command == Plan && status == vcs.Success {
 		status = vcs.Pending
 	}
 
-	ctx.Log.Debug("Updating status %s/%s", strings.Title(status.String()), description)
+	ctx.Log.Debug("Updating status %s/%s on %s", strings.Title(status.String()), description, workspace)
 
-	return d.Client.UpdateStatus(repo, pull, status, description)
+	return d.Client.UpdateStatus(repo, pull, status, description, workspace)
 }
 
 // UpdateProjectResult updates the commit status based on the status of res.
 func (d *DefaultCommitStatusUpdater) UpdateProjectResult(ctx *CommandContext, commandName CommandName, res CommandResult) error {
-	var status vcs.CommitStatus
 	if res.Error != nil || res.Failure != "" {
-		status = vcs.Failed
+		// TODO: iterate project/workspace and send failure on each one
 	} else {
-		var statuses []vcs.CommitStatus
 		for _, p := range res.ProjectResults {
-			statuses = append(statuses, p.Status())
+			d.Update(ctx.BaseRepo, ctx.Pull, p.Status(), commandName, ctx, p.Workspace)
 		}
-		status = d.worstStatus(statuses)
 	}
-
-	return d.Update(ctx.BaseRepo, ctx.Pull, status, commandName, ctx)
+	return nil
 }
 
 func (d *DefaultCommitStatusUpdater) worstStatus(ss []vcs.CommitStatus) vcs.CommitStatus {

@@ -26,7 +26,7 @@ type ClientProxy interface {
 	GetModifiedFiles(repo models.Repo, pull models.PullRequest) ([]string, error)
 	CreateComment(repo models.Repo, pullNum int, comment string) error
 	PullIsApproved(repo models.Repo, pull models.PullRequest) (bool, error)
-	UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string) error
+	UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string, workspace string) error
 }
 
 // DefaultClientProxy proxies calls to the correct VCS client depending on which
@@ -81,12 +81,12 @@ func (d *DefaultClientProxy) PullIsApproved(repo models.Repo, pull models.PullRe
 	return false, invalidVCSErr
 }
 
-func (d *DefaultClientProxy) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string) error {
+func (d *DefaultClientProxy) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string, workspace string) error {
 	switch repo.VCSHost.Type {
 	case models.Github:
-		return d.GithubClient.UpdateStatus(repo, pull, state, description)
+		return d.GithubClient.UpdateStatus(repo, pull, state, description, workspace)
 	case models.Gitlab:
-		return d.GitlabClient.UpdateStatus(repo, pull, state, description)
+		return d.GitlabClient.UpdateStatus(repo, pull, state, description, workspace)
 	}
 	return invalidVCSErr
 }

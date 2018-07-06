@@ -79,8 +79,8 @@ func (g *GitlabClient) PullIsApproved(repo models.Repo, pull models.PullRequest)
 }
 
 // UpdateStatus updates the build status of a commit.
-func (g *GitlabClient) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string) error {
-	const statusContext = "Atlantis"
+func (g *GitlabClient) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string, workspace string) error {
+	statusContext := fmt.Sprintf("atlantis-%s", workspace)
 
 	gitlabState := gitlab.Failed
 	switch state {

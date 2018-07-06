@@ -123,8 +123,9 @@ func (g *GithubClient) GetPullRequest(repo models.Repo, num int) (*github.PullRe
 
 // UpdateStatus updates the status badge on the pull request.
 // See https://github.com/blog/1227-commit-status-api.
-func (g *GithubClient) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string) error {
-	const statusContext = "Atlantis"
+func (g *GithubClient) UpdateStatus(repo models.Repo, pull models.PullRequest, state CommitStatus, description string, workspace string) error {
+	statusContext := fmt.Sprintf("atlantis-%s", workspace)
+
 	ghState := "error"
 	switch state {
 	case Pending:
