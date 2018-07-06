@@ -27,7 +27,7 @@ import (
 // the status to signify whether the plan/apply succeeds.
 type CommitStatusUpdater interface {
 	// Update updates the status of the head commit of pull.
-	Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName) error
+	Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext) error
 	// UpdateProjectResult updates the status of the head commit given the
 	// state of response.
 	UpdateProjectResult(ctx *CommandContext, commandName CommandName, res CommandResult) error
@@ -39,8 +39,15 @@ type DefaultCommitStatusUpdater struct {
 }
 
 // Update updates the commit status.
-func (d *DefaultCommitStatusUpdater) Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName) error {
+func (d *DefaultCommitStatusUpdater) Update(repo models.Repo, pull models.PullRequest, status vcs.CommitStatus, command CommandName, ctx *CommandContext) error {
 	description := fmt.Sprintf("%s %s", strings.Title(command.String()), strings.Title(status.String()))
+
+	if command == Plan && status == vcs.Success {
+		status = vcs.Pending
+	}
+
+	ctx.Log.Debug("Updating status %s/%s", strings.Title(status.String()), description)
+
 	return d.Client.UpdateStatus(repo, pull, status, description)
 }
 
@@ -56,7 +63,8 @@ func (d *DefaultCommitStatusUpdater) UpdateProjectResult(ctx *CommandContext, co
 		}
 		status = d.worstStatus(statuses)
 	}
-	return d.Update(ctx.BaseRepo, ctx.Pull, status, commandName)
+
+	return d.Update(ctx.BaseRepo, ctx.Pull, status, commandName, ctx)
 }
 
 func (d *DefaultCommitStatusUpdater) worstStatus(ss []vcs.CommitStatus) vcs.CommitStatus {
