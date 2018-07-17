@@ -45,6 +45,7 @@ const (
 	GitlabTokenFlag     = "gitlab-token"
 	GitlabUserFlag      = "gitlab-user"
 	GitlabWebHookSecret = "gitlab-webhook-secret"
+	InstanceNameFlag    = "instance-name"
 	LogLevelFlag        = "log-level"
 	PortFlag            = "port"
 	RepoConfigDirFlag   = "repo-config-dir"
@@ -118,6 +119,10 @@ var stringFlags = []stringFlag{
 			" SECURITY WARNING: If not specified, Atlantis won't be able to validate that the incoming webhook call came from GitLab. " +
 			"This means that an attacker could spoof calls to Atlantis and cause it to perform malicious actions. " +
 			"Should be specified via the ATLANTIS_GITLAB_WEBHOOK_SECRET environment variable.",
+	},
+	{
+		name:        InstanceNameFlag,
+		description: "Instance name, will only handle comments targeting this name.",
 	},
 	{
 		name:         LogLevelFlag,

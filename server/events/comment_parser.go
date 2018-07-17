@@ -49,10 +49,11 @@ type CommentParsing interface {
 
 // CommentParser implements CommentParsing
 type CommentParser struct {
-	GithubUser  string
-	GithubToken string
-	GitlabUser  string
-	GitlabToken string
+	GithubUser   string
+	GithubToken  string
+	GitlabUser   string
+	GitlabToken  string
+	InstanceName string
 }
 
 // CommentParseResult describes the result of parsing a comment as a command.
@@ -70,18 +71,15 @@ type CommentParseResult struct {
 // Parse parses the comment as an Atlantis command.
 //
 // Valid commands contain:
-// - The initial "executable" name, 'run' or 'atlantis' or '@GithubUser'
-//   where GithubUser is the API user Atlantis is running as.
+// - 'atlantis-<instance name>'
 // - Then a command, either 'plan', 'apply', or 'help'.
 // - Then optional flags, then an optional separator '--' followed by optional
 //   extra flags to be appended to the terraform plan/apply command.
 //
 // Examples:
-// - atlantis help
-// - run plan
-// - @GithubUser plan -w staging
-// - atlantis plan -w staging -d dir --verbose
-// - atlantis plan --verbose -- -key=value -key2 value2
+// - atlantis-ppr help
+// - atlantis-prd plan -w staging -d dir --verbose
+// - atlantis-prd plan --verbose -- -key=value -key2 value2
 //
 func (e *CommentParser) Parse(comment string, vcsHost models.VCSHostType) CommentParseResult {
 	if multiLineRegex.MatchString(comment) {
@@ -100,13 +98,11 @@ func (e *CommentParser) Parse(comment string, vcsHost models.VCSHostType) Commen
 		return CommentParseResult{CommentResponse: DidYouMeanAtlantisComment}
 	}
 
-	// Atlantis can be invoked using the name of the VCS host user we're
-	// running under. Need to be able to match against that user.
-	vcsUser := e.GithubUser
-	if vcsHost == models.Gitlab {
-		vcsUser = e.GitlabUser
+	instanceExecutable := "atlantis"
+	if e.InstanceName != "" {
+		instanceExecutable = fmt.Sprintf("atlantis-%s", e.InstanceName)
 	}
-	executableNames := []string{"run", "atlantis", "@" + vcsUser}
+	executableNames := []string{instanceExecutable}
 
 	// If the comment doesn't start with the name of our 'executable' then
 	// ignore it.
@@ -145,7 +141,7 @@ func (e *CommentParser) Parse(comment string, vcsHost models.VCSHostType) Commen
 		name = Plan
 		flagSet = pflag.NewFlagSet(Plan.String(), pflag.ContinueOnError)
 		flagSet.SetOutput(ioutil.Discard)
-		flagSet.StringVarP(&workspace, WorkspaceFlagLong, WorkspaceFlagShort, DefaultWorkspace, "Switch to this Terraform workspace before planning.")
+		flagSet.StringVarP(&workspace, WorkspaceFlagLong, WorkspaceFlagShort, e.InstanceName, "Switch to this Terraform workspace before planning.")
 		flagSet.StringVarP(&dir, DirFlagLong, DirFlagShort, DefaultDir, "Which directory to run plan in relative to root of repo, ex. 'child/dir'.")
 		flagSet.StringVarP(&project, ProjectFlagLong, ProjectFlagShort, "", fmt.Sprintf("Which project to run plan for. Refers to the name of the project configured in %s. Cannot be used at same time as workspace or dir flags.", yaml.AtlantisYAMLFilename))
 		flagSet.BoolVarP(&verbose, VerboseFlagLong, VerboseFlagShort, false, "Append Atlantis log to comment.")
@@ -153,7 +149,7 @@ func (e *CommentParser) Parse(comment string, vcsHost models.VCSHostType) Commen
 		name = Apply
 		flagSet = pflag.NewFlagSet(Apply.String(), pflag.ContinueOnError)
 		flagSet.SetOutput(ioutil.Discard)
-		flagSet.StringVarP(&workspace, WorkspaceFlagLong, WorkspaceFlagShort, DefaultWorkspace, "Apply the plan for this Terraform workspace.")
+		flagSet.StringVarP(&workspace, WorkspaceFlagLong, WorkspaceFlagShort, e.InstanceName, "Apply the plan for this Terraform workspace.")
 		flagSet.StringVarP(&dir, DirFlagLong, DirFlagShort, DefaultDir, "Apply the plan for this directory, relative to root of repo, ex. 'child/dir'.")
 		flagSet.StringVarP(&project, ProjectFlagLong, ProjectFlagShort, "", fmt.Sprintf("Apply the plan for this project. Refers to the name of the project configured in %s. Cannot be used at same time as workspace or dir flags.", yaml.AtlantisYAMLFilename))
 		flagSet.BoolVarP(&verbose, VerboseFlagLong, VerboseFlagShort, false, "Append Atlantis log to comment.")

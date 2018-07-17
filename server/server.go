@@ -92,6 +92,7 @@ type UserConfig struct {
 	GitlabToken         string `mapstructure:"gitlab-token"`
 	GitlabUser          string `mapstructure:"gitlab-user"`
 	GitlabWebHookSecret string `mapstructure:"gitlab-webhook-secret"`
+	InstanceName        string `mapstructure:"instance-name"`
 	LogLevel            string `mapstructure:"log-level"`
 	Port                int    `mapstructure:"port"`
 	RepoConfigDir       string `mapstructure:"repo-config-dir"`
@@ -219,10 +220,11 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		GitlabToken: userConfig.GitlabToken,
 	}
 	commentParser := &events.CommentParser{
-		GithubUser:  userConfig.GithubUser,
-		GithubToken: userConfig.GithubToken,
-		GitlabUser:  userConfig.GitlabUser,
-		GitlabToken: userConfig.GitlabToken,
+		GithubUser:   userConfig.GithubUser,
+		GithubToken:  userConfig.GithubToken,
+		GitlabUser:   userConfig.GitlabUser,
+		GitlabToken:  userConfig.GitlabToken,
+		InstanceName: userConfig.InstanceName,
 	}
 	defaultTfVersion := terraformClient.Version()
 	commandRunner := &events.DefaultCommandRunner{
