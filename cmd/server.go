@@ -47,6 +47,7 @@ const (
 	GitlabWebHookSecret = "gitlab-webhook-secret"
 	LogLevelFlag        = "log-level"
 	PortFlag            = "port"
+	RepoConfigDirFlag   = "repo-config-dir"
 	RepoWhitelistFlag   = "repo-whitelist"
 	RequireApprovalFlag = "require-approval"
 	SSLCertFileFlag     = "ssl-cert-file"
@@ -58,6 +59,7 @@ const (
 	DefaultGitlabHostname = "gitlab.com"
 	DefaultLogLevel       = "info"
 	DefaultPort           = 4141
+	DefaultRepoConfigDir  = "config"
 )
 
 const RedTermStart = "\033[31m"
@@ -121,6 +123,11 @@ var stringFlags = []stringFlag{
 		name:         LogLevelFlag,
 		description:  "Log level. Either debug, info, warn, or error.",
 		defaultValue: DefaultLogLevel,
+	},
+	{
+		name:         RepoConfigDirFlag,
+		description:  "Path to directory to store repository config.",
+		defaultValue: DefaultRepoConfigDir,
 	},
 	{
 		name: RepoWhitelistFlag,
@@ -331,6 +338,9 @@ func (s *ServerCmd) setDefaults(c *server.UserConfig) {
 	}
 	if c.Port == 0 {
 		c.Port = DefaultPort
+	}
+	if c.RepoConfigDir == "" {
+		c.RepoConfigDir = DefaultRepoConfigDir
 	}
 }
 

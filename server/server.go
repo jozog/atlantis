@@ -94,6 +94,7 @@ type UserConfig struct {
 	GitlabWebHookSecret string `mapstructure:"gitlab-webhook-secret"`
 	LogLevel            string `mapstructure:"log-level"`
 	Port                int    `mapstructure:"port"`
+	RepoConfigDir       string `mapstructure:"repo-config-dir"`
 	RepoWhitelist       string `mapstructure:"repo-whitelist"`
 	// RequireApproval is whether to require pull request approval before
 	// allowing terraform apply's to be run.
@@ -242,6 +243,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 			WorkingDirLocker:    workingDirLocker,
 			AllowRepoConfig:     userConfig.AllowRepoConfig,
 			AllowRepoConfigFlag: config.AllowRepoConfigFlag,
+			RepoConfigDir:       userConfig.RepoConfigDir,
 		},
 		ProjectCommandRunner: &events.DefaultProjectCommandRunner{
 			Locker:           projectLocker,

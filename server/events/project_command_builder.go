@@ -28,6 +28,7 @@ type DefaultProjectCommandBuilder struct {
 	WorkingDirLocker    WorkingDirLocker
 	AllowRepoConfig     bool
 	AllowRepoConfigFlag string
+	RepoConfigDir       string
 }
 
 type TerraformExec interface {
@@ -52,7 +53,7 @@ func (p *DefaultProjectCommandBuilder) BuildAutoplanCommands(ctx *CommandContext
 
 	// Parse config file if it exists.
 	var config valid.Config
-	hasConfigFile, err := p.ParserValidator.HasConfigFile(repoDir)
+	hasConfigFile, err := p.ParserValidator.HasConfigFile(p.RepoConfigDir, ctx.BaseRepo.Name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "looking for %s file in %q", yaml.AtlantisYAMLFilename, repoDir)
 	}
@@ -60,7 +61,7 @@ func (p *DefaultProjectCommandBuilder) BuildAutoplanCommands(ctx *CommandContext
 		if !p.AllowRepoConfig {
 			return nil, fmt.Errorf("%s files not allowed because Atlantis is not running with --%s", yaml.AtlantisYAMLFilename, p.AllowRepoConfigFlag)
 		}
-		config, err = p.ParserValidator.ReadConfig(repoDir)
+		config, err = p.ParserValidator.ReadConfig(p.RepoConfigDir, ctx.BaseRepo.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +166,7 @@ func (p *DefaultProjectCommandBuilder) BuildApplyCommand(ctx *CommandContext, cm
 }
 
 func (p *DefaultProjectCommandBuilder) buildProjectCommandCtx(ctx *CommandContext, cmd *CommentCommand, repoDir string) (models.ProjectCommandContext, error) {
-	projCfg, globalCfg, err := p.getCfg(cmd.ProjectName, cmd.RepoRelDir, cmd.Workspace, repoDir)
+	projCfg, globalCfg, err := p.getCfg(ctx, cmd.ProjectName, cmd.RepoRelDir, cmd.Workspace, ctx.BaseRepo.Name)
 	if err != nil {
 		return models.ProjectCommandContext{}, err
 	}
@@ -194,15 +195,17 @@ func (p *DefaultProjectCommandBuilder) buildProjectCommandCtx(ctx *CommandContex
 	}, nil
 }
 
-func (p *DefaultProjectCommandBuilder) getCfg(projectName string, dir string, workspace string, repoDir string) (*valid.Project, *valid.Config, error) {
-	hasConfigFile, err := p.ParserValidator.HasConfigFile(repoDir)
+func (p *DefaultProjectCommandBuilder) getCfg(ctx *CommandContext, projectName string, dir string, workspace string, repoName string) (*valid.Project, *valid.Config, error) {
+	hasConfigFile, err := p.ParserValidator.HasConfigFile(p.RepoConfigDir, repoName)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "looking for %s file in %q", yaml.AtlantisYAMLFilename, repoDir)
+		return nil, nil, errors.Wrapf(err, "looking for %s.yaml", repoName)
 	}
 	if !hasConfigFile {
 		if projectName != "" {
 			return nil, nil, fmt.Errorf("cannot specify a project name unless an %s file exists to configure projects", yaml.AtlantisYAMLFilename)
 		}
+		ctx.Log.Info("No repo config file %s.yaml", repoName)
+
 		return nil, nil, nil
 	}
 
@@ -210,10 +213,11 @@ func (p *DefaultProjectCommandBuilder) getCfg(projectName string, dir string, wo
 		return nil, nil, fmt.Errorf("%s files not allowed because Atlantis is not running with --%s", yaml.AtlantisYAMLFilename, p.AllowRepoConfigFlag)
 	}
 
-	globalCfg, err := p.ParserValidator.ReadConfig(repoDir)
+	globalCfg, err := p.ParserValidator.ReadConfig(p.RepoConfigDir, repoName)
 	if err != nil {
 		return nil, nil, err
 	}
+	ctx.Log.Info("successfully parsed %s.yaml file", repoName)
 
 	// If they've specified a project by name we look it up. Otherwise we
 	// use the dir and workspace.

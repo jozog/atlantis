@@ -18,12 +18,12 @@ const AtlantisYAMLFilename = "atlantis.yaml"
 
 type ParserValidator struct{}
 
-// ReadConfig returns the parsed and validated atlantis.yaml config for repoDir.
+// ReadConfig returns the parsed and validated atlantis.yaml config for repoName.
 // If there was no config file, then this can be detected by checking the type
 // of error: os.IsNotExist(error) but it's instead preferred to check with
 // HasConfigFile.
-func (p *ParserValidator) ReadConfig(repoDir string) (valid.Config, error) {
-	configFile := p.configFilePath(repoDir)
+func (p *ParserValidator) ReadConfig(repoConfigDir string, repoName string) (valid.Config, error) {
+	configFile := p.configFilePath(repoConfigDir, repoName)
 	configData, err := ioutil.ReadFile(configFile)
 
 	// NOTE: the error we return here must also be os.IsNotExist since that's
@@ -45,8 +45,8 @@ func (p *ParserValidator) ReadConfig(repoDir string) (valid.Config, error) {
 	return config, err
 }
 
-func (p *ParserValidator) HasConfigFile(repoDir string) (bool, error) {
-	_, err := os.Stat(p.configFilePath(repoDir))
+func (p *ParserValidator) HasConfigFile(repoConfigDir string, repoName string) (bool, error) {
+	_, err := os.Stat(p.configFilePath(repoConfigDir, repoName))
 	if os.IsNotExist(err) {
 		return false, nil
 	}
@@ -56,8 +56,8 @@ func (p *ParserValidator) HasConfigFile(repoDir string) (bool, error) {
 	return false, err
 }
 
-func (p *ParserValidator) configFilePath(repoDir string) string {
-	return filepath.Join(repoDir, AtlantisYAMLFilename)
+func (p *ParserValidator) configFilePath(repoConfigDir string, repoName string) string {
+	return filepath.Join(repoConfigDir, fmt.Sprintf("%s.yaml", repoName))
 }
 
 func (p *ParserValidator) parseAndValidate(configData []byte) (valid.Config, error) {
