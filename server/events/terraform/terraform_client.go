@@ -126,7 +126,9 @@ func (c *DefaultClient) RunCommandWithVersion(log *logging.SimpleLogger, path st
 		return string(out), err
 	}
 	log.Info("successfully ran %q in %q", commandStr, path)
-	return string(out), nil
+	re := regexp.MustCompile("(?m)^.+ Refreshing state\\.\\.\\..*$[\r\n]+")
+	filteredOut := re.ReplaceAllString(string(out), "")
+	return filteredOut, nil
 }
 
 // MustConstraint will parse one or more constraints from the given
